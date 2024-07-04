@@ -14,7 +14,7 @@ UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB limit
+app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -70,6 +70,10 @@ def create_slideshow(video_path, image_paths, output_path, fps=30.0):
     video.release()
     out.release()
     socketio.emit('progress', {'progress': 100, 'task': 'Processing'})
+    
+    # Delete the temporary images
+    for img_path in image_paths:
+        os.remove(img_path)
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_files():
