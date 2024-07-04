@@ -1,11 +1,14 @@
-from flask import Flask, request, send_file, render_template
+from flask import Flask, request, send_file, render_template, jsonify
+from flask_socketio import SocketIO, emit
 from PIL import Image
 import os
 import cv2
 import numpy as np
 from werkzeug.utils import secure_filename
+import time
 
 app = Flask(__name__)
+socketio = SocketIO(app)
 
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -40,35 +43,44 @@ def create_slideshow(video_path, image_paths, output_path, fps=30.0):
     out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
     
     # Write original video frames
+    total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+    current_frame = 0
     while True:
         ret, frame = video.read()
         if not ret:
             break
         out.write(frame)
+        current_frame += 1
+        progress = (current_frame / total_frames) * 50  # 50% for video
+        socketio.emit('progress', {'progress': progress, 'task': 'Processing'})
     
     # Add images to the video
-    for img_path in image_paths:
+    for idx, img_path in enumerate(image_paths):
         img = cv2.imread(img_path)
         img = cv2.resize(img, (width, height))
         
         # Write the image for 3 seconds (3 * fps frames)
         for _ in range(int(3 * fps)):
             out.write(img)
+        
+        progress = 50 + ((idx + 1) / len(image_paths)) * 50  # Remaining 50% for images
+        socketio.emit('progress', {'progress': progress, 'task': 'Processing'})
     
     # Release everything
     video.release()
     out.release()
+    socketio.emit('progress', {'progress': 100, 'task': 'Processing'})
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_files():
     if request.method == 'POST':
         if 'files[]' not in request.files:
-            return render_template('upload.html', error='No file part')
+            return jsonify({'error': 'No file part'}), 400
         
         files = request.files.getlist('files[]')
         
         if not files or files[0].filename == '':
-            return render_template('upload.html', error='No selected files')
+            return jsonify({'error': 'No selected files'}), 400
         
         merged_paths = []
         transparent_overlay = 'uploads/main.png'  # This is your main transparent image
@@ -78,6 +90,9 @@ def upload_files():
                 filename = secure_filename(file.filename)
                 file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 file.save(file_path)
+                
+                # Emit progress for upload
+                socketio.emit('progress', {'progress': 0, 'task': 'Uploading'})
                 
                 # Overlay the transparent image on top of the uploaded image
                 result = overlay_images(file_path, transparent_overlay)
@@ -93,19 +108,25 @@ def upload_files():
                 merged_paths.append(result_path)
         
         if not merged_paths:
-            return render_template('upload.html', error='No valid files uploaded')
+            return jsonify({'error': 'No valid files uploaded'}), 400
         
-        # Create slideshow
+        # Create slideshow in a separate thread
         default_video = 'uploads/video.mp4'
         output_video = 'output/video.mp4'
-        try:
-            create_slideshow(default_video, merged_paths, output_video)
-        except Exception as e:
-            return render_template('upload.html', error=f'Error creating slideshow: {str(e)}')
+        socketio.start_background_task(target=create_slideshow, video_path=default_video, image_paths=merged_paths, output_path=output_video)
         
-        return send_file(output_video, as_attachment=True)
+        return jsonify({'message': 'Files uploaded successfully, processing video.'}), 202  # Accepted
     
     return render_template('upload.html')
 
+@app.route('/download', methods=['GET'])
+def download_video():
+    output_video = 'output/video.mp4'
+    return send_file(output_video, as_attachment=True)
+
+@socketio.on('connect')
+def handle_connect():
+    emit('connected', {'data': 'Connected'})
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    socketio.run(app, debug=True)
