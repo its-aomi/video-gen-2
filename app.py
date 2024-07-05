@@ -1,5 +1,7 @@
 from flask import Flask, request, render_template, jsonify
 from flask_socketio import SocketIO, emit
+from moviepy.editor import VideoFileClip, ImageClip, concatenate_videoclips
+from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
@@ -39,7 +41,7 @@ def overlay_images(background_url, overlay_url):
     result = Image.alpha_composite(background, overlay)
     return result
 
-def create_slideshow(video_url, image_urls, output_path, fps=30.0):
+def create_slideshow(video_url, image_urls, output_path, fps=30):
     try:
         # Ensure output directory exists
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -52,42 +54,27 @@ def create_slideshow(video_url, image_urls, output_path, fps=30.0):
             with open(video_path, 'wb') as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
+
+        # Load the video clip
+        video_clip = VideoFileClip(video_path)
         
-        # Process video and images
-        video = cv2.VideoCapture(video_path)
-        width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        
-        # Use mp4v codec for wider compatibility
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
-        
-        # Write original video frames
-        total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-        current_frame = 0
-        while True:
-            ret, frame = video.read()
-            if not ret:
-                break
-            out.write(frame)
-            current_frame += 1
-            progress = (current_frame / total_frames) * 50
-            socketio.emit('progress', {'progress': progress, 'task': 'Processing video'})
-        
-        # Add images to the video
+        # Create image clips
+        image_clips = []
         for idx, img_url in enumerate(image_urls):
             img_data = requests.get(img_url).content
-            img = cv2.imdecode(np.frombuffer(img_data, np.uint8), cv2.IMREAD_COLOR)
-            img = cv2.resize(img, (width, height))
-            
-            for _ in range(int(3 * fps)):
-                out.write(img)
-            
+            img = Image.open(BytesIO(img_data))
+            img = img.resize(video_clip.size, Image.Resampling.LANCZOS)  # Updated resizing method
+            img_clip = ImageClip(np.array(img), duration=3)
+            image_clips.append(img_clip.set_duration(3))
+
             progress = 50 + ((idx + 1) / len(image_urls)) * 45
             socketio.emit('progress', {'progress': progress, 'task': 'Adding images'})
+
+        # Concatenate the video clip with image clips
+        final_clip = concatenate_videoclips([video_clip] + image_clips)
         
-        video.release()
-        out.release()
+        # Write the final video
+        final_clip.write_videofile(output_path, codec="libx264", fps=fps)
         
         # Clean up temporary files
         os.remove(video_path)
