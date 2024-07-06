@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request, render_template, jsonify
 from flask_socketio import SocketIO, emit
 from moviepy.editor import VideoFileClip, ImageClip, concatenate_videoclips
@@ -5,7 +6,6 @@ from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
-import os
 import cv2
 import numpy as np
 from PIL import Image
@@ -13,18 +13,22 @@ import time
 from io import BytesIO
 import requests
 import logging
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 socketio = SocketIO(app)
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
 # Cloudinary configuration
 cloudinary.config(
-    cloud_name='dkaxmhco0',
-    api_key='281129765289341',
-    api_secret='gw8IVtCnibFlN0Wso4-ztoWUo9Q'
+    cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
+    api_key=os.getenv('CLOUDINARY_API_KEY'),
+    api_secret=os.getenv('CLOUDINARY_API_SECRET')
 )
 
 def allowed_file(filename):
@@ -110,7 +114,7 @@ def upload_files():
             return jsonify({'error': 'No selected files'}), 400
         
         merged_paths = []
-        transparent_overlay_url = 'https://res.cloudinary.com/dkaxmhco0/image/upload/v1720078449/zqxthg3pzfqodbx96kbo.png'
+        transparent_overlay_url = 'https://res.cloudinary.com/dkaxmhco0/image/upload/v1720154742/pqwfwc3r1y4djvnqqdyt.png'
         
         for file in files:
             if file and allowed_file(file.filename):
