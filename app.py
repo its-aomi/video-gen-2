@@ -14,9 +14,12 @@ from io import BytesIO
 import requests
 import logging
 from dotenv import load_dotenv
+import eventlet
+
+eventlet.monkey_patch()
 
 app = Flask(__name__)
-socketio = SocketIO(app)
+socketio = SocketIO(app, async_mode='eventlet')
 
 # Load environment variables from .env file
 load_dotenv()
