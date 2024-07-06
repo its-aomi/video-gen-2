@@ -16,6 +16,7 @@ import time
 from io import BytesIO
 import requests
 import logging
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 socketio = SocketIO(app, async_mode='eventlet')
