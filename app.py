@@ -1,4 +1,6 @@
-import os
+import eventlet
+eventlet.monkey_patch()
+
 from flask import Flask, request, render_template, jsonify
 from flask_socketio import SocketIO, emit
 from moviepy.editor import VideoFileClip, ImageClip, concatenate_videoclips
@@ -6,6 +8,7 @@ from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
+import os
 import cv2
 import numpy as np
 from PIL import Image
@@ -13,10 +16,6 @@ import time
 from io import BytesIO
 import requests
 import logging
-from dotenv import load_dotenv
-import eventlet
-
-eventlet.monkey_patch()
 
 app = Flask(__name__)
 socketio = SocketIO(app, async_mode='eventlet')
