@@ -2,12 +2,13 @@ from flask import Flask, render_template, jsonify, request, send_file
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
+from moviepy.editor import VideoFileClip, ImageClip, concatenate_videoclips
 import os
 import tempfile
 import requests
 from werkzeug.utils import secure_filename
 from PIL import Image
-import ffmpeg
+import numpy as np
 from dotenv import load_dotenv
 
 app = Flask(__name__)
@@ -69,6 +70,9 @@ def process_video():
 
     return jsonify({"video_url": f"/get_video/{os.path.basename(final_video_path)}"})
 
+@app.route('/get_video/<filename>')
+def get_video(filename):
+    return send_file(os.path.join(tempfile.gettempdir(), filename), mimetype='video/mp4')
 
 def download_from_url(url):
     response = requests.get(url)
@@ -77,53 +81,39 @@ def download_from_url(url):
         f.write(response.content)
     return temp_path
 
-
 def process_and_create_video(video_path, transparent_image_path, image_urls):
-    video_file_name = 'initial_video.mp4'
-    overlay_file_name = 'transparent_overlay.png'
-
-    # Download and save images
-    image_paths = []
-    for image_url in image_urls:
-        image_path = download_from_url(image_url)
-        image_paths.append(image_path)
+    video_clip = VideoFileClip(video_path)
     
-    # Generate the final video using ffmpeg
+    # Get video dimensions
+    video_width, video_height = video_clip.w, video_clip.h
+    
+    final_clips = [video_clip]
+
+    def overlay_transparent_image(background_path, overlay_path, target_size):
+        with Image.open(background_path) as bg_img:
+            with Image.open(overlay_path) as overlay_img:
+                # Resize background image to match video dimensions
+                bg_img = bg_img.resize(target_size, Image.LANCZOS)
+                bg_img = bg_img.convert("RGBA")
+                
+                # Resize overlay image to match video dimensions
+                overlay_img = overlay_img.resize(target_size, Image.LANCZOS)
+                overlay_img = overlay_img.convert("RGBA")
+                
+                combined_img = Image.alpha_composite(bg_img, overlay_img)
+                return np.array(combined_img)
+
+    for image_url in image_urls:
+        background_image_path = download_from_url(image_url)
+        combined_image_array = overlay_transparent_image(background_image_path, transparent_image_path, (video_width, video_height))
+        combined_image_clip = ImageClip(combined_image_array).set_duration(video_clip.duration)
+        final_clips.append(combined_image_clip)
+
+    final_video = concatenate_videoclips(final_clips)
     final_video_path = os.path.join(tempfile.gettempdir(), 'final_video.mp4')
-    overlay_image = Image.open(transparent_image_path)
-    overlay_width, overlay_height = overlay_image.size
-
-    # Prepare FFmpeg filter commands
-    filter_cmd = []
-
-    for i, image_path in enumerate(image_paths):
-        filter_cmd.append(
-            f"[0][{i+1}]overlay=W-w:H-h:shortest=1[v{i+1}];"
-            f"[v{i+1}][{i+1}]overlay=(W-w)/2:(H-h)/2:shortest=1"
-        )
-
-    filter_cmd = ";".join(filter_cmd)
-
-    # Build FFmpeg input command
-    input_cmd = [
-        ffmpeg.input(video_path).video,
-        *[
-            ffmpeg.input(img_path).filter("scale", overlay_width, overlay_height).video
-            for img_path in image_paths
-        ]
-    ]
-
-    # Run FFmpeg process
-    (
-        ffmpeg
-        .concat(*input_cmd, v=1, a=1)
-        .output(final_video_path, vcodec='libx264', pix_fmt='yuv420p')
-        .run()
-    )
-
+    final_video.write_videofile(final_video_path, codec="libx264", fps=24)
+    
     return final_video_path
-
-
 
 if __name__ == '__main__':
     app.run(debug=True)
