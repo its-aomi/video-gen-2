@@ -2,17 +2,13 @@ from flask import Flask, render_template, jsonify, request, send_file
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
-from moviepy.editor import VideoFileClip, ImageClip, CompositeVideoClip, concatenate_videoclips
 import os
 import tempfile
 import requests
 from werkzeug.utils import secure_filename
 from PIL import Image
-import numpy as np
-import psutil
-import gc
+import ffmpeg
 from dotenv import load_dotenv
-
 
 app = Flask(__name__)
 
@@ -73,9 +69,6 @@ def process_video():
 
     return jsonify({"video_url": f"/get_video/{os.path.basename(final_video_path)}"})
 
-@app.route('/get_video/<filename>')
-def get_video(filename):
-    return send_file(os.path.join(tempfile.gettempdir(), filename), mimetype='video/mp4')
 
 def download_from_url(url):
     response = requests.get(url)
@@ -84,50 +77,53 @@ def download_from_url(url):
         f.write(response.content)
     return temp_path
 
+
 def process_and_create_video(video_path, transparent_image_path, image_urls):
-    video_clip = VideoFileClip(video_path)
-    transparent_image_clip = ImageClip(transparent_image_path)
+    video_file_name = 'initial_video.mp4'
+    overlay_file_name = 'transparent_overlay.png'
+
+    # Download and save images
+    image_paths = []
+    for image_url in image_urls:
+        image_path = download_from_url(image_url)
+        image_paths.append(image_path)
     
-    # Get video dimensions
-    video_width, video_height = video_clip.w, video_clip.h
-    
-    final_clips = [video_clip]
-
-    def resize_image(image_path, width, height):
-        with Image.open(image_path) as img:
-            img_resized = img.resize((width, height), Image.LANCZOS)
-            img_array = np.array(img_resized)
-            return ImageClip(img_array)
-
-    # Process images in batches
-    batch_size = 5
-    for i in range(0, len(image_urls), batch_size):
-        batch = image_urls[i:i+batch_size]
-        batch_clips = []
-        
-        for image_url in batch:
-            if check_memory_usage():
-                background_image_path = download_from_url(image_url)
-                background_clip = resize_image(background_image_path, video_width, video_height).set_duration(video_clip.duration)
-                transparent_image_clip_resized = transparent_image_clip.resize(height=video_height).set_duration(video_clip.duration)
-                final_clip = CompositeVideoClip([background_clip, transparent_image_clip_resized.set_position("center")])
-                batch_clips.append(final_clip)
-                os.remove(background_image_path)  # Remove temporary file
-            else:
-                print("Memory usage too high. Skipping image.")
-        
-        final_clips.extend(batch_clips)
-        gc.collect()  # Force garbage collection after each batch
-
-    final_video = concatenate_videoclips(final_clips)
+    # Generate the final video using ffmpeg
     final_video_path = os.path.join(tempfile.gettempdir(), 'final_video.mp4')
-    final_video.write_videofile(final_video_path, codec="libx264", fps=24)
-    
+    overlay_image = Image.open(transparent_image_path)
+    overlay_width, overlay_height = overlay_image.size
+
+    # Prepare FFmpeg filter commands
+    filter_cmd = []
+
+    for i, image_path in enumerate(image_paths):
+        filter_cmd.append(
+            f"[0][{i+1}]overlay=W-w:H-h:shortest=1[v{i+1}];"
+            f"[v{i+1}][{i+1}]overlay=(W-w)/2:(H-h)/2:shortest=1"
+        )
+
+    filter_cmd = ";".join(filter_cmd)
+
+    # Build FFmpeg input command
+    input_cmd = [
+        ffmpeg.input(video_path).video,
+        *[
+            ffmpeg.input(img_path).filter("scale", overlay_width, overlay_height).video
+            for img_path in image_paths
+        ]
+    ]
+
+    # Run FFmpeg process
+    (
+        ffmpeg
+        .concat(*input_cmd, v=1, a=1)
+        .output(final_video_path, vcodec='libx264', pix_fmt='yuv420p')
+        .run()
+    )
+
     return final_video_path
 
-def check_memory_usage():
-    memory_usage = psutil.virtual_memory().percent
-    return memory_usage < MAX_MEMORY_PERCENT
+
 
 if __name__ == '__main__':
     app.run(debug=True)
