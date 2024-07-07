@@ -9,15 +9,20 @@ import requests
 from werkzeug.utils import secure_filename
 from PIL import Image
 import numpy as np
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 
+# Load environment variables from .env file
+load_dotenv()
+
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
+# Cloudinary configuration
 cloudinary.config(
-    cloud_name="dkaxmhco0",
-    api_key="281129765289341",
-    api_secret="gw8IVtCnibFlN0Wso4-ztoWUo9Q"
+    cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
+    api_key=os.getenv('CLOUDINARY_API_KEY'),
+    api_secret=os.getenv('CLOUDINARY_API_SECRET')
 )
 
 def allowed_file(filename):
