@@ -9,7 +9,10 @@ import requests
 from werkzeug.utils import secure_filename
 from PIL import Image
 import numpy as np
+import psutil
+import gc
 from dotenv import load_dotenv
+
 
 app = Flask(__name__)
 
@@ -96,18 +99,35 @@ def process_and_create_video(video_path, transparent_image_path, image_urls):
             img_array = np.array(img_resized)
             return ImageClip(img_array)
 
-    for image_url in image_urls:
-        background_image_path = download_from_url(image_url)
-        background_clip = resize_image(background_image_path, video_width, video_height).set_duration(video_clip.duration)
-        transparent_image_clip_resized = transparent_image_clip.resize(height=video_height).set_duration(video_clip.duration)
-        final_clip = CompositeVideoClip([background_clip, transparent_image_clip_resized.set_position("center")])
-        final_clips.append(final_clip)
+    # Process images in batches
+    batch_size = 5
+    for i in range(0, len(image_urls), batch_size):
+        batch = image_urls[i:i+batch_size]
+        batch_clips = []
+        
+        for image_url in batch:
+            if check_memory_usage():
+                background_image_path = download_from_url(image_url)
+                background_clip = resize_image(background_image_path, video_width, video_height).set_duration(video_clip.duration)
+                transparent_image_clip_resized = transparent_image_clip.resize(height=video_height).set_duration(video_clip.duration)
+                final_clip = CompositeVideoClip([background_clip, transparent_image_clip_resized.set_position("center")])
+                batch_clips.append(final_clip)
+                os.remove(background_image_path)  # Remove temporary file
+            else:
+                print("Memory usage too high. Skipping image.")
+        
+        final_clips.extend(batch_clips)
+        gc.collect()  # Force garbage collection after each batch
 
     final_video = concatenate_videoclips(final_clips)
     final_video_path = os.path.join(tempfile.gettempdir(), 'final_video.mp4')
     final_video.write_videofile(final_video_path, codec="libx264", fps=24)
     
     return final_video_path
+
+def check_memory_usage():
+    memory_usage = psutil.virtual_memory().percent
+    return memory_usage < MAX_MEMORY_PERCENT
 
 if __name__ == '__main__':
     app.run(debug=True)
