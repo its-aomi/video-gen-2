@@ -1,166 +1,108 @@
-import eventlet
-eventlet.monkey_patch()
-
-from flask import Flask, request, render_template, jsonify
-from flask_socketio import SocketIO, emit
-from moviepy.editor import VideoFileClip, ImageClip, concatenate_videoclips
-from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
+from flask import Flask, render_template, jsonify, request, send_file
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
+from moviepy.editor import VideoFileClip, ImageClip, CompositeVideoClip, concatenate_videoclips
 import os
-import cv2
-import numpy as np
-from PIL import Image
-import time
-from io import BytesIO
+import tempfile
 import requests
-import logging
-from dotenv import load_dotenv
+from werkzeug.utils import secure_filename
+from PIL import Image
+import numpy as np
 
 app = Flask(__name__)
-socketio = SocketIO(app, async_mode='eventlet')
 
-# Load environment variables from .env file
-load_dotenv()
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-
-# Cloudinary configuration
 cloudinary.config(
-    cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
-    api_key=os.getenv('CLOUDINARY_API_KEY'),
-    api_secret=os.getenv('CLOUDINARY_API_SECRET')
+    cloud_name="dkaxmhco0",
+    api_key="281129765289341",
+    api_secret="gw8IVtCnibFlN0Wso4-ztoWUo9Q"
 )
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg', 'gif'}
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def overlay_images(background_url, overlay_url):
-    background = Image.open(BytesIO(requests.get(background_url).content)).convert("RGBA")
-    overlay = Image.open(BytesIO(requests.get(overlay_url).content)).convert("RGBA")
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/upload_images', methods=['POST'])
+def upload_images():
+    if 'files[]' not in request.files:
+        return jsonify({"error": "No file part"})
     
-    # Resize background to match overlay size
-    background = background.resize(overlay.size)
+    files = request.files.getlist('files[]')
     
-    # Create a new image blending the background with the overlay
-    result = Image.alpha_composite(background, overlay)
-    return result
-
-def create_slideshow(video_url, image_urls, output_path, fps=30):
-    try:
-        # Ensure output directory exists
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-
-        # Download the video
-        video_path = 'uploads/video.mp4'
-        os.makedirs(os.path.dirname(video_path), exist_ok=True)
-        with requests.get(video_url, stream=True) as r:
-            r.raise_for_status()
-            with open(video_path, 'wb') as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    f.write(chunk)
-
-        # Load the video clip
-        video_clip = VideoFileClip(video_path)
-        
-        # Create image clips
-        image_clips = []
-        for idx, img_url in enumerate(image_urls):
-            img_data = requests.get(img_url).content
-            img = Image.open(BytesIO(img_data))
-            img = img.resize(video_clip.size, Image.Resampling.LANCZOS)  # Updated resizing method
-            img_clip = ImageClip(np.array(img), duration=3)
-            image_clips.append(img_clip.set_duration(3))
-
-            progress = 50 + ((idx + 1) / len(image_urls)) * 45
-            socketio.emit('progress', {'progress': progress, 'task': 'Adding images'})
-
-        # Concatenate the video clip with image clips
-        final_clip = concatenate_videoclips([video_clip] + image_clips)
-        
-        # Write the final video
-        final_clip.write_videofile(output_path, codec="libx264", fps=fps)
-        
-        # Clean up temporary files
-        os.remove(video_path)
-        
-        # Upload processed video to Cloudinary
-        logging.info(f"Uploading processed video to Cloudinary: {output_path}")
-        upload_result = cloudinary.uploader.upload(output_path, 
-                                                   folder="vi-video", 
-                                                   resource_type="video")
-        video_url = upload_result['secure_url']
-        
-        socketio.emit('processing_complete', {'video_url': video_url})
-        socketio.emit('progress', {'progress': 100, 'task': 'Processing complete'})
-        
-        # Clean up output video
-        os.remove(output_path)
-        
-        return video_url
-    except Exception as e:
-        logging.error(f"Error in create_slideshow: {str(e)}")
-        socketio.emit('processing_error', {'error': f'Failed to create slideshow: {str(e)}'})
-        return None
-
-@app.route('/', methods=['GET', 'POST'])
-def upload_files():
-    if request.method == 'POST':
-        if 'files[]' not in request.files:
-            return jsonify({'error': 'No file part'}), 400
-        
-        files = request.files.getlist('files[]')
-        
-        if not files or files[0].filename == '':
-            return jsonify({'error': 'No selected files'}), 400
-        
-        merged_paths = []
-        transparent_overlay_url = 'https://res.cloudinary.com/dkaxmhco0/image/upload/v1720154742/pqwfwc3r1y4djvnqqdyt.png'
-        
-        for file in files:
-            if file and allowed_file(file.filename):
-                try:
-                    upload_result = cloudinary.uploader.upload(file, folder="vi-image")
-                    file_url = upload_result['secure_url']
-                    
-                    socketio.emit('progress', {'progress': 0, 'task': 'Uploading'})
-                    
-                    result = overlay_images(file_url, transparent_overlay_url)
-                    
-                    result_io = BytesIO()
-                    if file.filename.lower().endswith(('.jpg', '.jpeg')):
-                        result = result.convert('RGB')
-                        result.save(result_io, 'JPEG')
-                    else:
-                        result.save(result_io, 'PNG')
-                    result_io.seek(0)
-                    
-                    overlaid_result = cloudinary.uploader.upload(result_io, folder="vi-image")
-                    merged_paths.append(overlaid_result['secure_url'])
-                except Exception as e:
-                    logging.error(f"Error processing file {file.filename}: {str(e)}")
-                    return jsonify({'error': f'Error processing file {file.filename}'}), 500
-        
-        if not merged_paths:
-            return jsonify({'error': 'No valid files uploaded'}), 400
-        
-        default_video_url = 'https://res.cloudinary.com/dkaxmhco0/video/upload/v1720078520/video_wxrh5b.mp4'
-        output_video = 'output/video.mp4'
-        socketio.start_background_task(target=create_slideshow, video_url=default_video_url, image_urls=merged_paths, output_path=output_video)
-        
-        return jsonify({'message': 'Files uploaded successfully, processing video.'}), 202
+    if not files or files[0].filename == '':
+        return jsonify({"error": "No selected file"})
     
-    return render_template('upload.html')
+    for file in files:
+        if file and allowed_file(file.filename):
+            # Upload file to Cloudinary
+            result = cloudinary.uploader.upload(file, folder="vi-image")
+            print(f"File uploaded to Cloudinary: {result['secure_url']}")
+    
+    # Process video after uploading images
+    return process_video()
 
-@app.route('/download', methods=['GET'])
-def download_video():
-    return jsonify({'message': 'Video processing in progress. Please wait for the processing_complete event.'})
+@app.route('/process_video', methods=['POST'])
+def process_video():
+    initial_video_url = 'https://res.cloudinary.com/dkaxmhco0/video/upload/v1720078520/video_wxrh5b.mp4'
+    transparent_image_url = 'https://res.cloudinary.com/dkaxmhco0/image/upload/v1720154742/pqwfwc3r1y4djvnqqdyt.png'
+    image_folder = 'vi-image'
 
-@socketio.on('connect')
-def handle_connect():
-    emit('connected', {'data': 'Connected'})
+    # Download the initial video and transparent image
+    initial_video_path = download_from_url(initial_video_url)
+    transparent_image_path = download_from_url(transparent_image_url)
+
+    # Get all images from the Cloudinary folder
+    images = cloudinary.api.resources(type='upload', prefix=image_folder, resource_type='image', max_results=500)
+    image_urls = [image['secure_url'] for image in images['resources']]
+
+    # Process video
+    final_video_path = process_and_create_video(initial_video_path, transparent_image_path, image_urls)
+
+    return jsonify({"video_url": f"/get_video/{os.path.basename(final_video_path)}"})
+
+@app.route('/get_video/<filename>')
+def get_video(filename):
+    return send_file(os.path.join(tempfile.gettempdir(), filename), mimetype='video/mp4')
+
+def download_from_url(url):
+    response = requests.get(url)
+    _, temp_path = tempfile.mkstemp()
+    with open(temp_path, 'wb') as f:
+        f.write(response.content)
+    return temp_path
+
+def process_and_create_video(video_path, transparent_image_path, image_urls):
+    video_clip = VideoFileClip(video_path)
+    transparent_image_clip = ImageClip(transparent_image_path)
+    
+    # Get video dimensions
+    video_width, video_height = video_clip.w, video_clip.h
+    
+    final_clips = [video_clip]
+
+    def resize_image(image_path, width, height):
+        with Image.open(image_path) as img:
+            img_resized = img.resize((width, height), Image.LANCZOS)
+            img_array = np.array(img_resized)
+            return ImageClip(img_array)
+
+    for image_url in image_urls:
+        background_image_path = download_from_url(image_url)
+        background_clip = resize_image(background_image_path, video_width, video_height).set_duration(video_clip.duration)
+        transparent_image_clip_resized = transparent_image_clip.resize(height=video_height).set_duration(video_clip.duration)
+        final_clip = CompositeVideoClip([background_clip, transparent_image_clip_resized.set_position("center")])
+        final_clips.append(final_clip)
+
+    final_video = concatenate_videoclips(final_clips)
+    final_video_path = os.path.join(tempfile.gettempdir(), 'final_video.mp4')
+    final_video.write_videofile(final_video_path, codec="libx264", fps=24)
+    
+    return final_video_path
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    app.run(debug=True)

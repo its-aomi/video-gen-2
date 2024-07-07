@@ -17,16 +17,26 @@
 </head>
 <body>
     <h1>Video Processing App</h1>
-    <button id="processButton">Process</button>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" name="files[]" multiple accept="image/*">
+        <button type="submit">Upload Images and Process Video</button>
+    </form>
     <div id="result"></div>
 
     <script>
-        document.getElementById('processButton').onclick = async function() {
-            const response = await fetch('/process_video', {
-                method: 'POST'
+        document.getElementById('uploadForm').onsubmit = async function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            const response = await fetch('/upload_images', {
+                method: 'POST',
+                body: formData
             });
             const result = await response.json();
-            document.getElementById('result').innerHTML = `<p>Final Video URL: <a href="${result.video_url}" target="_blank">${result.video_url}</a></p>`;
+            if (result.error) {
+                document.getElementById('result').innerHTML = `<p>Error: ${result.error}</p>`;
+            } else {
+                document.getElementById('result').innerHTML = `<p>Final Video URL: <a href="${result.video_url}" target="_blank">View Video</a></p>`;
+            }
         };
     </script>
 </body>
