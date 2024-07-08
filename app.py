@@ -30,7 +30,13 @@ def allowed_file(filename):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    existing_images = get_existing_images()
+    return render_template('index.html', existing_images=existing_images)
+
+def get_existing_images():
+    image_folder = 'vi-image'
+    images = cloudinary.api.resources(type='upload', prefix=image_folder, resource_type='image', max_results=500)
+    return [image['secure_url'] for image in images['resources']]
 
 @app.route('/upload_images', methods=['POST'])
 def upload_images():

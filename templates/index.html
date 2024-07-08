@@ -3,14 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Processing App</title>
+    <title>Power in Participation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: #f0f0f0;
+            padding: 20px;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        #uploadForm {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .file-input-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 150px;
+            height: 150px;
+            background-color: #fff;
+            border: 2px dashed #ccc;
+            border-radius: 50%;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .file-input-container input[type="file"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+        .file-input-container i {
+            font-size: 50px;
+            color: #888;
+        }
+        .file-input-container span {
+            font-size: 16px;
+            color: #888;
         }
         button {
-            margin: 5px 0;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #fff;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 0;
+            cursor: pointer;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px #0056b3;
+        }
+        button:active {
+            background-color: #0056b3;
+            box-shadow: 0 2px #003f7f;
+            transform: translateY(2px);
+        }
+        #existingImages {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        #existingImages img {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            cursor: pointer;
         }
         .modal {
             display: none;
@@ -30,16 +102,79 @@
             width: 80%;
             max-width: 400px;
             text-align: center;
+            border-radius: 10px;
+        }
+        #result p {
+            text-align: center;
+        }
+        .gallery-modal {
+            display: none;
+            position: fixed;
+            z-index: 2;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            align-items: center;
+            justify-content: center;
+        }
+        .gallery-modal-content {
+            position: relative;
+            max-width: 800px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .gallery-modal-content img {
+            max-width: 100%;
+            max-height: 80vh;
+            border-radius: 10px;
+        }
+        .gallery-nav {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #fff;
+            font-size: 2em;
+            cursor: pointer;
+            z-index: 3;
+        }
+        .gallery-prev {
+            left: 10px;
+        }
+        .gallery-next {
+            right: 10px;
+        }
+        .gallery-close {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            font-size: 2em;
+            color: #fff;
+            cursor: pointer;
+            z-index: 3;
         }
     </style>
 </head>
 <body>
-    <h1>Video Processing App</h1>
+    <h1>Power in Participation</h1>
     <form id="uploadForm" enctype="multipart/form-data">
-        <input type="file" name="files[]" multiple accept="image/*">
-        <button type="submit">Upload Images and Process Video</button>
+        <div class="file-input-container" id="fileInputContainer">
+            <input type="file" name="files[]" multiple accept="image/*">
+            <i class="fas fa-plus"></i>
+            <span style="display: none;"></span>
+        </div>
+        <button type="submit">Submit</button>
     </form>
     <div id="result"></div>
+
+    <h2>Contributions</h2>
+    <div id="existingImages">
+        {% for image_url in existing_images %}
+            <img src="{{ image_url }}" alt="Existing image">
+        {% endfor %}
+    </div>
 
     <div id="modal" class="modal">
         <div class="modal-content">
@@ -47,9 +182,29 @@
         </div>
     </div>
 
+    <div id="galleryModal" class="gallery-modal">
+        <div class="gallery-modal-content">
+            <i class="fas fa-chevron-left gallery-nav gallery-prev"></i>
+            <img id="galleryImage" src="" alt="Gallery image">
+            <i class="fas fa-chevron-right gallery-nav gallery-next"></i>
+            <i class="fas fa-times gallery-close"></i>
+        </div>
+    </div>
+
     <script>
         const modal = document.getElementById('modal');
         const modalText = document.getElementById('modalText');
+        const fileInputContainer = document.getElementById('fileInputContainer');
+        const fileInput = fileInputContainer.querySelector('input[type="file"]');
+        const fileInputIcon = fileInputContainer.querySelector('i');
+        const fileInputSpan = fileInputContainer.querySelector('span');
+        const galleryModal = document.getElementById('galleryModal');
+        const galleryImage = document.getElementById('galleryImage');
+        const galleryPrev = document.querySelector('.gallery-prev');
+        const galleryNext = document.querySelector('.gallery-next');
+        const galleryClose = document.querySelector('.gallery-close');
+        let currentImageIndex = 0;
+        const imageUrls = [{% for image_url in existing_images %}"{{ image_url }}",{% endfor %}];
 
         function showModal(text) {
             modalText.textContent = text;
@@ -60,9 +215,49 @@
             modal.style.display = 'none';
         }
 
+        function showGalleryModal(index) {
+            currentImageIndex = index;
+            galleryImage.src = imageUrls[currentImageIndex];
+            galleryModal.style.display = 'flex';
+        }
+
+        function hideGalleryModal() {
+            galleryModal.style.display = 'none';
+        }
+
+        function showPrevImage() {
+            currentImageIndex = (currentImageIndex > 0) ? currentImageIndex - 1 : imageUrls.length - 1;
+            galleryImage.src = imageUrls[currentImageIndex];
+        }
+
+        function showNextImage() {
+            currentImageIndex = (currentImageIndex < imageUrls.length - 1) ? currentImageIndex + 1 : 0;
+            galleryImage.src = imageUrls[currentImageIndex];
+        }
+
+        fileInput.addEventListener('change', function() {
+            const files = fileInput.files;
+            if (files.length > 0) {
+                fileInputIcon.style.display = 'none';
+                fileInputSpan.style.display = 'block';
+                fileInputSpan.textContent = `${files.length} image(s) selected`;
+            } else {
+                fileInputIcon.style.display = 'block';
+                fileInputSpan.style.display = 'none';
+                fileInputSpan.textContent = '';
+            }
+        });
+
         document.getElementById('uploadForm').onsubmit = async function(event) {
             event.preventDefault();
             const formData = new FormData(this);
+            const files = formData.getAll('files[]');
+
+            if (files.length === 0) {
+                showModal('Please select images to upload.');
+                setTimeout(hideModal, 3000);
+                return;
+            }
 
             showModal('Uploading images...');
 
@@ -82,6 +277,8 @@
                 } else {
                     document.getElementById('result').innerHTML = `<p>Final Video URL: <a href="${result.video_url}" target="_blank">View Video</a></p>`;
                     showModal('Processing complete!');
+                    // Refresh the page to show newly uploaded images
+                    setTimeout(() => location.reload(), 3000);
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -91,6 +288,16 @@
 
             setTimeout(hideModal, 3000); // Hide modal after 3 seconds
         };
+
+        document.querySelectorAll('#existingImages img').forEach((img, index) => {
+            img.addEventListener('click', () => showGalleryModal(index));
+        });
+
+        galleryPrev.addEventListener('click', showPrevImage);
+        galleryNext.addEventListener('click', showNextImage);
+        galleryClose.addEventListener('click', hideGalleryModal);
+        galleryModal.addEventListener('click', hideGalleryModal);
+        galleryModal.querySelector('.gallery-modal-content').addEventListener('click', (e) => e.stopPropagation());
     </script>
 </body>
 </html>
