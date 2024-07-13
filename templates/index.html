@@ -1,10 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Power in Participation</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -14,30 +21,53 @@
             justify-content: center;
             min-height: 100vh;
             margin: 0;
-            background: #f0f0f0;
+            background: #fff;
             padding: 20px;
         }
-        h1, h2 {
-            text-align: center;
-        }
-        #uploadForm {
-            display: flex;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .file-input-container {
-            position: relative;
+
+        h1 {
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 150px;
-            height: 150px;
-            background-color: #fff;
-            border: 2px dashed #ccc;
-            border-radius: 50%;
-            cursor: pointer;
-            margin-right: 10px;
+            flex-wrap: wrap;
+            max-width: 100%;
+            word-break: break-word;
+            font-size: 6em;
+            margin: 0;
+            padding: 0;
+            padding-top: 50px;
         }
+
+        .democracy-text {
+            display: inline-flex;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: left;
+        }
+
+        .file-input-container {
+	flex-shrink: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 0.9em;
+	height: 0.9em;
+	background-color: white;
+	border: 1px solid black;
+	border-radius: 50%;
+	cursor: pointer;
+	margin: -17px;
+	padding: 2px;
+	position: relative;
+	outline: 2px solid #fff;
+	transform: translate(137px, -177px);
+	font-size: 80px;
+}
+
+.main-img {
+    margin-top: 50px;
+}
+
         .file-input-container input[type="file"] {
             position: absolute;
             width: 100%;
@@ -45,46 +75,86 @@
             opacity: 0;
             cursor: pointer;
         }
+
         .file-input-container i {
-            font-size: 50px;
-            color: #888;
+            font-size: 0.5em;
+            color: black;
+            font-family: sans-serif;
+            font-weight: 100;
         }
+
         .file-input-container span {
-            font-size: 16px;
-            color: #888;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.5em;
+            color: black;
         }
+
+        #uploadForm {
+	display: flex;
+	align-items: center;
+	margin-bottom: 20px;
+	margin-top: 30px;
+	margin-left: -30px;
+}
+
         button {
             padding: 10px 20px;
             font-size: 16px;
-            color: #fff;
-            background-color: #007BFF;
-            border: none;
-            border-radius: 0;
+            color: #000;
+            background-color: #fff;
+            border: 1px solid #212121;
+            border-radius: 50px;
             cursor: pointer;
-            transition: background-color 0.3s ease, box-shadow 0.3s ease;
-            box-shadow: 0 4px #0056b3;
+            transition: background-color 0.3s ease;
+            font-style: italic;
         }
-        button:active {
-            background-color: #0056b3;
-            box-shadow: 0 2px #003f7f;
-            transform: translateY(2px);
+
+        button:hover {
+            background-color: #D8C7FA;
         }
+
         #existingImages {
-            display: flex;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
             gap: 10px;
             justify-content: center;
             margin-top: 20px;
         }
+
+        /* Default grid layout for desktop (5 images per row) */
+        @media (min-width: 1024px) {
+            #existingImages {
+                grid-template-columns: repeat(5, 1fr);
+            }
+        }
+
+        /* Grid layout for tablets and small desktops (4 images per row) */
+        @media (min-width: 768px) and (max-width: 1023px) {
+            #existingImages {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        /* Grid layout for mobile (3 images per row) */
+        @media (max-width: 767px) {
+            #existingImages {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
         #existingImages img {
-            width: 100px;
+            width: 100%;
             height: 100px;
             object-fit: cover;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             cursor: pointer;
         }
-        .modal {
+
+        .modal,
+        .gallery-modal {
             display: none;
             position: fixed;
             z-index: 1;
@@ -92,8 +162,9 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.4);
+            background-color: rgba(0, 0, 0, 0.4);
         }
+
         .modal-content {
             background-color: #fefefe;
             margin: 15% auto;
@@ -104,21 +175,18 @@
             text-align: center;
             border-radius: 10px;
         }
+
         #result p {
             text-align: center;
         }
+
         .gallery-modal {
+            background-color: rgba(0, 0, 0, 0.9);
             display: none;
-            position: fixed;
-            z-index: 2;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.9);
             align-items: center;
             justify-content: center;
         }
+
         .gallery-modal-content {
             position: relative;
             max-width: 800px;
@@ -126,11 +194,13 @@
             align-items: center;
             justify-content: center;
         }
+
         .gallery-modal-content img {
             max-width: 100%;
             max-height: 80vh;
             border-radius: 10px;
         }
+
         .gallery-nav {
             position: fixed;
             top: 50%;
@@ -140,12 +210,15 @@
             cursor: pointer;
             z-index: 3;
         }
+
         .gallery-prev {
             left: 10px;
         }
+
         .gallery-next {
             right: 10px;
         }
+
         .gallery-close {
             position: fixed;
             top: 20px;
@@ -155,25 +228,57 @@
             cursor: pointer;
             z-index: 3;
         }
+
+        @media (max-width: 600px) {
+            #existingImages {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .h2-text {
+            align-self: flex-start;
+            width: 100%;
+            text-align: left;
+        }
+
+        h2 {
+            font-family: "Inter", Sans-serif;
+            font-weight: 300;
+            font-size: 20px;
+        }
+        .main-img img {
+	width: 330px;
+}
+.main-cont {
+	max-width: 330px;
+}
     </style>
 </head>
+
 <body>
-    <h1>Power in Participation</h1>
+    <div class="main-img">
+        <img src="/static/Untitled design (86).png">
+    </div>
     <form id="uploadForm" enctype="multipart/form-data">
         <div class="file-input-container" id="fileInputContainer">
             <input type="file" name="files[]" multiple accept="image/*">
             <i class="fas fa-plus"></i>
             <span style="display: none;"></span>
         </div>
-        <button type="submit">Submit</button>
+        <button type="submit">revitalise</button>
     </form>
     <div id="result"></div>
 
-    <h2>Contributions</h2>
+    <div class="main-cont">
+    <div class="h2-text">
+        <h2>OUR DEMOCRACY:</h2>
+    </div>
+
     <div id="existingImages">
         {% for image_url in existing_images %}
-            <img src="{{ image_url }}" alt="Existing image">
+        <img src="{{ image_url }}" alt="Existing image">
         {% endfor %}
+    </div>
     </div>
 
     <div id="modal" class="modal">
@@ -204,7 +309,7 @@
         const galleryNext = document.querySelector('.gallery-next');
         const galleryClose = document.querySelector('.gallery-close');
         let currentImageIndex = 0;
-        const imageUrls = [{% for image_url in existing_images %}"{{ image_url }}",{% endfor %}];
+        const imageUrls = [{% for image_url in existing_images %}"{{ image_url }}", {% endfor %}];
 
         function showModal(text) {
             modalText.textContent = text;
@@ -235,12 +340,12 @@
             galleryImage.src = imageUrls[currentImageIndex];
         }
 
-        fileInput.addEventListener('change', function() {
+        fileInput.addEventListener('change', function () {
             const files = fileInput.files;
             if (files.length > 0) {
                 fileInputIcon.style.display = 'none';
                 fileInputSpan.style.display = 'block';
-                fileInputSpan.textContent = `${files.length} image(s) selected`;
+                fileInputSpan.textContent = `${files.length}`;
             } else {
                 fileInputIcon.style.display = 'block';
                 fileInputSpan.style.display = 'none';
@@ -248,45 +353,42 @@
             }
         });
 
-        document.getElementById('uploadForm').onsubmit = async function(event) {
-    event.preventDefault();
-    const formData = new FormData(this);
-    const files = formData.getAll('files[]');
+        document.getElementById('uploadForm').onsubmit = async function (event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            const files = formData.getAll('files[]');
 
-    if (files.length === 0) {
-        showModal('Please select images to upload.');
-        setTimeout(hideModal, 3000);
-        return;
-    }
+            if (files.length === 0) {
+                showModal('Please select images to upload.');
+                setTimeout(hideModal, 3000);
+                return;
+            }
 
-    showModal('Uploading images...');
+            showModal('Uploading images...');
 
-    try {
-        const response = await fetch('/upload_images', {
-            method: 'POST',
-            body: formData
-        });
+            try {
+                const response = await fetch('/upload_images', {
+                    method: 'POST',
+                    body: formData
+                });
 
-        const result = await response.json();
+                const result = await response.json();
 
-        if (result.error) {
-            document.getElementById('result').innerHTML = `<p>Error: ${result.error}</p>`;
-            showModal('Error occurred');
-        } else {
-            // Change the notification to "Processing video..." immediately after uploading images
-            showModal(result.status);
+                if (result.error) {
+                    document.getElementById('result').innerHTML = `<p>Error: ${result.error}</p>`;
+                    showModal('Error occurred');
+                } else {
+                    showModal(result.status);
+                    document.getElementById('result').innerHTML = `<p>${result.status}</p>`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = `<p>An error occurred: ${error.message}</p>`;
+                showModal('Error occurred');
+            }
 
-            document.getElementById('result').innerHTML = `<p>${result.status}</p>`;
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        document.getElementById('result').innerHTML = `<p>An error occurred: ${error.message}</p>`;
-        showModal('Error occurred');
-    }
-
-    setTimeout(hideModal, 3000); // Hide modal after 3 seconds
-};
-
+            setTimeout(hideModal, 3000);
+        };
 
         document.querySelectorAll('#existingImages img').forEach((img, index) => {
             img.addEventListener('click', () => showGalleryModal(index));
@@ -299,4 +401,5 @@
         galleryModal.querySelector('.gallery-modal-content').addEventListener('click', (e) => e.stopPropagation());
     </script>
 </body>
+
 </html>
