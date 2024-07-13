@@ -10,6 +10,7 @@ from werkzeug.utils import secure_filename
 from PIL import Image
 import numpy as np
 from dotenv import load_dotenv
+import threading
 
 app = Flask(__name__)
 
@@ -54,10 +55,12 @@ def upload_images():
             result = cloudinary.uploader.upload(file, folder="vi-image")
             print(f"File uploaded to Cloudinary: {result['secure_url']}")
     
-    # Process video after uploading images
-    return process_video()
+    # Start video processing in a separate thread
+    threading.Thread(target=process_video).start()
 
-@app.route('/process_video', methods=['POST'])
+    # Return a response immediately after uploading images
+    return jsonify({"status": "Images uploaded, processing video..."})
+
 def process_video():
     initial_video_url = 'https://res.cloudinary.com/dkaxmhco0/video/upload/v1720078520/video_wxrh5b.mp4'
     transparent_image_url = 'https://res.cloudinary.com/dkaxmhco0/image/upload/v1720154742/pqwfwc3r1y4djvnqqdyt.png'
@@ -74,7 +77,7 @@ def process_video():
     # Process video
     final_video_path = process_and_create_video(initial_video_path, transparent_image_path, image_urls)
 
-    return jsonify({"video_url": f"/get_video/{os.path.basename(final_video_path)}"})
+    print(f"Video processing complete. Final video available at: /get_video/{os.path.basename(final_video_path)}")
 
 @app.route('/get_video/<filename>')
 def get_video(filename):
