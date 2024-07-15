@@ -17,7 +17,7 @@ app = Flask(__name__)
 # Load environment variables from .env file
 load_dotenv()
 
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'avif', 'hevc', 'heic'}
 
 # Cloudinary configuration
 cloudinary.config(
@@ -90,7 +90,7 @@ def download_from_url(url):
         f.write(response.content)
     return temp_path
 
-def process_and_create_video(video_path, transparent_image_path, image_urls):
+def process_and_create_video(video_path, transparent_image_path, image_urls, image_duration=2):
     video_clip = VideoFileClip(video_path)
     
     # Get video dimensions
@@ -115,7 +115,7 @@ def process_and_create_video(video_path, transparent_image_path, image_urls):
     for image_url in image_urls:
         background_image_path = download_from_url(image_url)
         combined_image_array = overlay_transparent_image(background_image_path, transparent_image_path, (video_width, video_height))
-        combined_image_clip = ImageClip(combined_image_array).set_duration(video_clip.duration)
+        combined_image_clip = ImageClip(combined_image_array).set_duration(image_duration)
         final_clips.append(combined_image_clip)
 
     final_video = concatenate_videoclips(final_clips)
