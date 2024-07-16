@@ -59,11 +59,11 @@ def upload_images():
     threading.Thread(target=process_video).start()
 
     # Return a response immediately after uploading images
-    return jsonify({"status": "Images uploaded, processing video..."})
+    return jsonify({"status": "Images uploaded, processing video... This will take a while, you can check back later."})
 
 def process_video():
-    initial_video_url = 'https://res.cloudinary.com/dkaxmhco0/video/upload/v1720078520/video_wxrh5b.mp4'
-    transparent_image_url = 'https://res.cloudinary.com/dkaxmhco0/image/upload/v1720154742/pqwfwc3r1y4djvnqqdyt.png'
+    initial_video_url = 'https://res.cloudinary.com/dkaxmhco0/video/upload/q_auto/v1721140698/dec_3_eeu0t3.mp4'
+    transparent_image_url = 'https://res.cloudinary.com/dkaxmhco0/image/upload/q_auto/v1721140723/tc4qypmax5eeuzi1gy8e.png'
     image_folder = 'vi-image'
 
     # Download the initial video and transparent image

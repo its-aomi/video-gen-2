@@ -257,6 +257,66 @@
 .main-cont {
 	max-width: 330px;
 }
+
+.new-help-button {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background-color: #6E1C15;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s;
+}
+
+.new-help-button:hover {
+    background-color: #6E1C15;
+}
+
+.new-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.new-modal-content {
+    background-color: #6E1C15;
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 500px;
+    width: 80%;
+    text-align: center;
+    position: relative;
+    transform: scale(0);
+    transition: transform 0.3s;
+    color: #fff;
+}
+
+.new-modal.show .new-modal-content {
+    transform: scale(1);
+}
+
+.new-close-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 24px;
+    cursor: pointer;
+}
+
     </style>
 </head>
 
@@ -301,6 +361,57 @@
         </div>
     </div>
 
+    <button id="newHelpButton" class="new-help-button">?</button>
+
+    <div id="newHelpModal" class="new-modal">
+        <div class="new-modal-content">
+            <span id="newCloseButton" class="new-close-button">&times;</span>
+            <p>Die Verantwortung für den Inhalt und die Angemessenheit der Bilder liegt bei uns allen, ich bitte euch um einen respektvollen Umgang.</p>
+            <ol style="text-align: left;">
+                <li>
+                    Klicke auf das +
+                </li>
+                <li>
+                    Lade dein Bild hoch
+                </li>
+                <li>
+                    Werde Teil des Videos
+                </li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+    const newHelpButton = document.getElementById("newHelpButton");
+    const newHelpModal = document.getElementById("newHelpModal");
+    const newCloseButton = document.getElementById("newCloseButton");
+
+    newHelpButton.addEventListener("click", () => {
+        newHelpModal.style.display = "flex";
+        setTimeout(() => {
+            newHelpModal.classList.add("show");
+        }, 10);
+    });
+
+    newCloseButton.addEventListener("click", () => {
+        newHelpModal.classList.remove("show");
+        setTimeout(() => {
+            newHelpModal.style.display = "none";
+        }, 300);
+    });
+
+    window.addEventListener("click", (event) => {
+        if (event.target === newHelpModal) {
+            newHelpModal.classList.remove("show");
+            setTimeout(() => {
+                newHelpModal.style.display = "none";
+            }, 300);
+        }
+    });
+});
+
+    </script>
     <script>
         const modal = document.getElementById('modal');
         const modalText = document.getElementById('modalText');
