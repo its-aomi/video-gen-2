@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request, send_file
+from flask import Flask, render_template, jsonify, request, send_file, url_for
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
@@ -78,6 +78,11 @@ def process_video():
     final_video_path = process_and_create_video(initial_video_path, transparent_image_path, image_urls)
 
     print(f"Video processing complete. Final video available at: /get_video/{os.path.basename(final_video_path)}")
+
+@app.route('/show_video/<filename>')
+def show_video(filename):
+    video_url = url_for('get_video', filename=filename)
+    return render_template('video.html', video_url=video_url)
 
 @app.route('/get_video/<filename>')
 def get_video(filename):
