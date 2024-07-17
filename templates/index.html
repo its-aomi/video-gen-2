@@ -14,14 +14,14 @@
 
     <style>
         @font-face {
-  font-family: 'Rhymes';
-  src: URL('/static/RhymesDisplayTrial-UltraLightItalic.ttf') format('truetype');
-}
+            font-family: 'Rhymes';
+            src: URL('/static/RhymesDisplayTrial-UltraLightItalic.ttf') format('truetype');
+        }
 
-@font-face {
-    font-family: StudioPro;
-    src: url("/static/StudioPro-Regular.otf") format("opentype");
-}
+        @font-face {
+            font-family: StudioPro;
+            src: url("/static/StudioPro-Regular.otf") format("opentype");
+        }
 
         body {
             font-family: Arial, sans-serif;
@@ -56,28 +56,28 @@
         }
 
         .file-input-container {
-	flex-shrink: 0;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 0.9em;
-	height: 0.9em;
-	background-color: white;
-	border: 1px solid black;
-	border-radius: 50%;
-	cursor: pointer;
-	margin: -17px;
-	padding: 2px;
-	position: relative;
-	outline: 2px solid #fff;
-    -webkit-transform: translate(133px, -177px);
-	transform: translate(133px, -177px);
-	font-size: 80px;
-}
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 0.9em;
+            height: 0.9em;
+            background-color: white;
+            border: 1px solid black;
+            border-radius: 50%;
+            cursor: pointer;
+            margin: -17px;
+            padding: 2px;
+            position: relative;
+            outline: 2px solid #fff;
+            -webkit-transform: translate(133px, -177px);
+            transform: translate(133px, -177px);
+            font-size: 80px;
+        }
 
-.main-img {
-    margin-top: 50px;
-}
+        .main-img {
+            margin-top: 50px;
+        }
 
         .file-input-container input[type="file"] {
             position: absolute;
@@ -95,22 +95,22 @@
         }
 
         .file-input-container span {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 0.5em;
-    color: black;
-    font-family: 'StudioPro';
-}
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.5em;
+            color: black;
+            font-family: 'StudioPro';
+        }
 
         #uploadForm {
-	display: flex;
-	align-items: center;
-	margin-bottom: 20px;
-	margin-top: 30px;
-	margin-left: -30px;
-}
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            margin-top: 30px;
+            margin-left: -30px;
+        }
 
         button {
             padding: 10px 20px;
@@ -122,7 +122,7 @@
             cursor: pointer;
             transition: background-color 0.3s ease;
             font-family: 'Rhymes';
-           
+
         }
 
         button:hover {
@@ -259,14 +259,16 @@
             font-weight: 300;
             font-size: 20px;
         }
-        .main-img img {
-	width: 330px;
-}
-.main-cont {
-	max-width: 330px;
-}
 
-.new-help-button {
+        .main-img img {
+            width: 330px;
+        }
+
+        .main-cont {
+            max-width: 330px;
+        }
+
+        .new-help-button {
             position: fixed;
             top: 20px;
             left: 20px;
@@ -318,7 +320,6 @@
             font-size: 24px;
             cursor: pointer;
         }
-
     </style>
 </head>
 
@@ -337,15 +338,15 @@
     <div id="result"></div>
 
     <div class="main-cont">
-    <div class="h2-text">
-        <h2>OUR DEMOCRACY:</h2>
-    </div>
+        <div class="h2-text">
+            <h2>OUR DEMOCRACY:</h2>
+        </div>
 
-    <div id="existingImages">
-        {% for image_url in existing_images %}
-        <img src="{{ image_url }}" alt="Existing image">
-        {% endfor %}
-    </div>
+        <div id="existingImages">
+            {% for image_url in existing_images %}
+            <img src="{{ image_url }}" alt="Existing image">
+            {% endfor %}
+        </div>
     </div>
 
     <div id="modal" class="modal">
@@ -367,7 +368,8 @@
     <div id="newHelpModal" class="new-modal">
         <div class="new-modal-content">
             <span id="newCloseButton" class="new-close-button">&times;</span>
-            <p>Die Verantwortung für den Inhalt und die Angemessenheit der Bilder liegt bei uns allen, ich bitte euch um einen respektvollen Umgang.</p>
+            <p>Die Verantwortung für den Inhalt und die Angemessenheit der Bilder liegt bei uns allen, ich bitte euch um
+                einen respektvollen Umgang.</p>
             <ol style="text-align: left;">
                 <li>
                     Klicke auf das +
@@ -410,33 +412,33 @@
     </script>
     <script>
         document.addEventListener("DOMContentLoaded", () => {
-    const newHelpButton = document.getElementById("newHelpButton");
-    const newHelpModal = document.getElementById("newHelpModal");
-    const newCloseButton = document.getElementById("newCloseButton");
+            const newHelpButton = document.getElementById("newHelpButton");
+            const newHelpModal = document.getElementById("newHelpModal");
+            const newCloseButton = document.getElementById("newCloseButton");
 
-    newHelpButton.addEventListener("click", () => {
-        newHelpModal.style.display = "flex";
-        setTimeout(() => {
-            newHelpModal.classList.add("show");
-        }, 10);
-    });
+            newHelpButton.addEventListener("click", () => {
+                newHelpModal.style.display = "flex";
+                setTimeout(() => {
+                    newHelpModal.classList.add("show");
+                }, 10);
+            });
 
-    newCloseButton.addEventListener("click", () => {
-        newHelpModal.classList.remove("show");
-        setTimeout(() => {
-            newHelpModal.style.display = "none";
-        }, 300);
-    });
+            newCloseButton.addEventListener("click", () => {
+                newHelpModal.classList.remove("show");
+                setTimeout(() => {
+                    newHelpModal.style.display = "none";
+                }, 300);
+            });
 
-    window.addEventListener("click", (event) => {
-        if (event.target === newHelpModal) {
-            newHelpModal.classList.remove("show");
-            setTimeout(() => {
-                newHelpModal.style.display = "none";
-            }, 300);
-        }
-    });
-});
+            window.addEventListener("click", (event) => {
+                if (event.target === newHelpModal) {
+                    newHelpModal.classList.remove("show");
+                    setTimeout(() => {
+                        newHelpModal.style.display = "none";
+                    }, 300);
+                }
+            });
+        });
 
     </script>
     <script>
