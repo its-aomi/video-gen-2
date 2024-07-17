@@ -17,6 +17,12 @@
   font-family: 'Rhymes';
   src: URL('/static/RhymesDisplayTrial-UltraLightItalic.ttf') format('truetype');
 }
+
+@font-face {
+    font-family: StudioPro;
+    src: url("/static/StudioPro-Regular.otf") format("opentype");
+}
+
         body {
             font-family: Arial, sans-serif;
             display: flex;
@@ -89,13 +95,14 @@
         }
 
         .file-input-container span {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 0.5em;
-            color: black;
-        }
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.5em;
+    color: black;
+    font-family: 'StudioPro';
+}
 
         #uploadForm {
 	display: flex;
