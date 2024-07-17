@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request, send_file, url_for
+from flask import Flask, render_template, jsonify, request, send_file, url_for, Response
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
@@ -25,6 +25,8 @@ cloudinary.config(
     api_key=os.getenv('CLOUDINARY_API_KEY'),
     api_secret=os.getenv('CLOUDINARY_API_SECRET')
 )
+
+sse_flag = False
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -62,6 +64,7 @@ def upload_images():
     return jsonify({"status": "Images uploaded, processing video... This will take a while, you can check back later."})
 
 def process_video():
+    global sse_flag
     initial_video_url = 'https://res.cloudinary.com/dkaxmhco0/video/upload/q_auto/v1721140698/dec_3_eeu0t3.mp4'
     transparent_image_url = 'https://res.cloudinary.com/dkaxmhco0/image/upload/q_auto/v1721140723/tc4qypmax5eeuzi1gy8e.png'
     image_folder = 'vi-image'
@@ -78,6 +81,19 @@ def process_video():
     final_video_path = process_and_create_video(initial_video_path, transparent_image_path, image_urls)
 
     print(f"Video processing complete. Final video available at: /get_video/{os.path.basename(final_video_path)}")
+
+    # Notify the frontend that the video processing is complete
+    sse_flag = True
+
+@app.route('/video_processing_status')
+def video_processing_status():
+    def generate():
+        global sse_flag
+        if sse_flag:
+            yield 'data: video_processed\n\n'
+            sse_flag = False
+
+    return app.response_class(generate(), mimetype='text/event-stream')
 
 @app.route('/show_video/<filename>')
 def show_video(filename):
